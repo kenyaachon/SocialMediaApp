@@ -1,7 +1,7 @@
 var FooterModel = require("../models/Version");
-var Ractive = require("ractive");
+//var Ractive = require("ractive");
 
-module.exports = Ractive.extennd({
+module.exports = Ractive.extend({
   template: require("../../tpl/footer"),
   onrender: function () {
     var model = new FooterModel();

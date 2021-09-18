@@ -1,7 +1,7 @@
-var Ractive = require("ractive");
+//var Ractive = require("ractive");
 var ajax = require("../lib/Ajax");
 
-var fetcher = function () {
+var fetcher = function (callback) {
   var self = this;
   ajax
     .request({
@@ -10,9 +10,15 @@ var fetcher = function () {
     })
     .done(function (result) {
       self.set("value", result);
+      if (callback) {
+        callback(null, result);
+      }
     })
     .fail(function (xhr) {
-      self.fire("Error fetching ", self.get("url"));
+      console.log(xhr.key);
+      if (callback) {
+        self.fire("Error fetching ", self.get("url"));
+      }
     });
   return this;
 };
@@ -96,16 +102,23 @@ var bindingComponent = function (component) {
   return this;
 };
 
+var Setter = function (key) {
+  var self = this;
+  return function (value) {
+    self.set(key, value);
+  };
+};
+
 module.exports = Ractive.extend({
   data: {
     value: null,
     url: "",
   },
-  fetch: function () {
-    return fetcher();
+  fetch: function (callback) {
+    return fetcher.call(this, callback);
   },
   bindComponent: function (component) {
-    return bindingComponent(component);
+    return bindingComponent.call(this, component);
   },
   create: function (callback) {
     return creator(callback);
@@ -115,5 +128,8 @@ module.exports = Ractive.extend({
   },
   del: function (callback) {
     return deleter(callback);
+  },
+  setter: function (key) {
+    return Setter.call(this, key);
   },
 });

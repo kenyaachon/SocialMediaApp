@@ -68,11 +68,31 @@ console.log('Server running at http://127.0.0.1:1337');
 */
 
 //var app = http.createServer(assets).listen(port, host);
-var http = require('http');
-var Assets = require('./backend/Assets');
+var http = require("http");
+const Assets = require("./backend/Assets");
+const API = require("./backend/API");
+const Default = require("./backend/Default");
+
+const Router = require("./frontend/js/lib/router");
 const port = 9000;
-const host = '127.0.0.1';
+const host = "127.0.0.1";
 
+Router.add("static", Assets).add("api", API).add(Default);
 
-http.createServer(Assets).listen(port, host);
+var session = require("cookie-session");
+
+var process = function (req, res) {
+  Router.check(req.url, [req, res]);
+  //console.log("hello-session");
+};
+
+var checkSession = function (req, res) {
+  session({
+    keys: ["socialmediaapp"],
+  })(req, res, function () {
+    process(req, res);
+  });
+};
+
+http.createServer(checkSession).listen(port, host);
 console.log("Listening on " + host + ":" + port);

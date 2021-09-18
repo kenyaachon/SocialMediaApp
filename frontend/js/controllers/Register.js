@@ -1,6 +1,7 @@
-var Ractive = require("ractive");
-
-var render = function () {
+//var Ractive = require("ractive");
+var UserModel = require("../models/User");
+var userModel = new UserModel();
+var registrationRender = function () {
   var self = this;
   this.observe("fistName", userModel.setter("value.firstName"));
   this.observe("lastName", userModel.setter("value.lastName"));
@@ -27,6 +28,7 @@ module.exports = Ractive.extend({
     appfooter: require("../views/Footer"),
   },
   onrender: function () {
-    render();
+    console.log("rendering registration");
+    registrationRender.call(this);
   },
 });

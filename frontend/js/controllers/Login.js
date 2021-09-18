@@ -1,0 +1,31 @@
+//var Ractive = require("ractive");
+var UserModel = require("../models/User");
+var userModel = new UserModel();
+const render = function () {
+  var self = this;
+  this.observe("email", userModel.setter("email"));
+  this.observe("password", userModel.setter("password"));
+  this.on("login", function () {
+    userModel.login(function (error, result) {
+      if (error) {
+        self.set("error", error.error);
+      } else {
+        self.set("error", false);
+        //redirecting the user to the home page
+        window.location.href = "/";
+      }
+    });
+  });
+};
+
+module.exports = Ractive.extend({
+  template: require("../../tpl/login"),
+  components: {
+    navigation: require("../views/Navigation"),
+    appfooter: require("../views/Footer"),
+  },
+  onrender: function () {
+    console.log("rendering Login page");
+    render.call(this);
+  },
+});

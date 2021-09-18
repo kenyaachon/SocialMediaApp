@@ -1,11 +1,11 @@
-var Ractive = require('ractive');
+//var Ractive = require("ractive");
 module.exports = Ractive.extend({
-    template: require('../../tpl/home'),
-    components: {
-        navigation: require('../views/Navigation'),
-        appfooter: require('../views/Footer')
-    },
-    onrender: function() {
-        console.log('Home page rendered');
-    }
+  template: require("../../tpl/home"),
+  components: {
+    navigation: require("../views/Navigation"),
+    appfooter: require("../views/Footer"),
+  },
+  onrender: function () {
+    console.log("Home page rendered");
+  },
 });
