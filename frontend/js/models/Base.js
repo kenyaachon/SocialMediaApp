@@ -121,13 +121,13 @@ module.exports = Ractive.extend({
     return bindingComponent.call(this, component);
   },
   create: function (callback) {
-    return creator(callback);
+    return creator.call(this, callback);
   },
   save: function (callback) {
-    return updater(callback);
+    return updater.call(this, callback);
   },
   del: function (callback) {
-    return deleter(callback);
+    return deleter.call(this, callback);
   },
   setter: function (key) {
     return Setter.call(this, key);

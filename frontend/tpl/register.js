@@ -1,4 +1,3 @@
-console.log("register template started");
 module.exports = {
   v: 4,
   t: [

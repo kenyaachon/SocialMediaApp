@@ -30,6 +30,7 @@ async function main() {
   //const collection = database.collection("user");
 
   console.log("done with database connnection");
+
   return "done.";
 }
 
@@ -40,13 +41,24 @@ async function main() {
 
 var getDatabaseConnection = function (callback) {
   if (database) {
+    console.log("database is full and ready to use");
     callback(database);
     return;
   } else {
-    main()
-      .then(console.log, callback(database))
-      .catch(console.error)
-      .finally(() => client.close());
+    console.log("database is not full and ready to use");
+    main().then(console.log).catch(console.error);
+    // .finally(() => client.close());
+
+    // MongoClient.connect(
+    //   "mongodb://localhost:37017/socialmediapp",
+    //   function (error, db) {
+    //     if (error) {
+    //       throw error;
+    //     }
+    //     database = db;
+    //     callback(database);
+    //   }
+    // );
   }
 };
 
@@ -66,32 +78,45 @@ var processPOSTRequest = function (req, callback) {
   console.log("body, ", console.log(req.body));
   req
     .on("error", function (err) {
+      console.log("error");
       console.error(err);
     })
     .on("data", function (data) {
+      console.log("data");
       body += data;
     })
     .on("end", function () {
       console.log("end");
       const newSearchParams = new URLSearchParams(body);
-      callback(newSearchParams.toString());
+      console.log(newSearchParams);
+      callback(newSearchParams);
     });
 };
 
 var postRequestWithCallback = function (req, res) {
+  console.log("working on getting a datbase connection before post request");
+
   processPOSTRequest(req, function (data) {
-    if (!data.firstName || data.firstName === "") {
-      error("Please fill your first name.", res);
-    } else if (!data.lastName || data.lastName === "") {
+    console.log("calling ProcessPostRequest from the callback");
+    // if (!data.firstName || data.firstName === "") {
+    // error("Please fill your first name.", res);
+    if (!data.get("firstName") || data.get("firstName") === "") {
+      error("Please fill your first name");
+    } else if (!data.get("lastName") || data.get("lastName") === "") {
       error("Please fill your last name.", res);
-    } else if (!data.email || data.email === "" || !validEmail(data.email)) {
+    } else if (
+      !data.get("email") ||
+      data.get("email") === "" ||
+      !validEmail(data.get("email"))
+    ) {
       error("Invalid or missinng email", res);
-    } else if (!data.password || data.password === "") {
+    } else if (!data.get("password") || data.get("password") === "") {
       error("Please fill your password.", res);
     } else {
+      console.log("working on getting a datbase connection");
       getDatabaseConnection(function (database) {
-        var collection = database.collection("users");
-        data.password = sha1(data.password);
+        var collection = database.collection("user");
+        data.password = sha1(data.get("password"));
         collection.insert(data, function (err, docs) {
           if (err) {
             response(
@@ -125,7 +150,7 @@ var handleUserSessions = function (req, res) {
 
 var handleDeleteProfile = function (req, res) {
   getDatabaseConnection(function (database) {
-    var collection = database.collection("users");
+    var collection = database.collection("user");
     collection.remove({ email: req.session.user.email }, function (err, docs) {
       delete req.session.user;
       response(
@@ -146,7 +171,7 @@ var handleProfileUpdate = function (req, res) {
       error("Please fill your last name.", res);
     } else {
       getDatabaseConnection(function (database) {
-        var collection = database.collection("users");
+        var collection = database.collection("user");
         if (data.password) {
           data.password = sha1(data.password);
         }
@@ -189,7 +214,7 @@ var handleUserLogin = function (req, res) {
       console.error("Please enter your password.");
     } else {
       getDatabaseConnection(function (database) {
-        var collection = database.collection("users");
+        var collection = database.collection("user");
         collection
           .find({
             email: data.email,
@@ -256,7 +281,7 @@ var handleRESTMethods = function (req, res) {
 
 var getCurrentUser = function (callback, req, res) {
   getDatabaseConnection(function (database) {
-    var collection = database.collection("users");
+    var collection = database.collection("user");
     collection
       .find({
         email: req.session.user.email,
@@ -300,7 +325,7 @@ var handleFindFriends = function (req, res) {
 };
 
 var findFriends = function (req, res, database, searchFor, currentFriends) {
-  var collection = database.collection("users");
+  var collection = database.collection("user");
   var regExp = new RegExp(searchFor, "gi");
   var excludeEmails = [req.session.user.email];
   currentFriends.forEach(function (value, index, arr) {
@@ -351,7 +376,7 @@ var handleAPIFriendsAdd = function (req, res) {
         }
       };
       var updateUserData = function (database, friendId) {
-        var collection = database.collection("users");
+        var collection = database.collection("user");
         collection.update(
           { email: req.session.user.email },
           { $push: { friends: friendId } },
@@ -383,7 +408,7 @@ var handleFriends = function (req, res) {
           arr[index] = ObjectId(value);
         });
         getDatabaseConnection(function (database) {
-          var collection = database.collection("users");
+          var collection = database.collection("user");
           collection
             .find({
               _id: { $in: user.friends },
