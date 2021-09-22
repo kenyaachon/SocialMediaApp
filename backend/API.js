@@ -254,6 +254,163 @@ var handleRESTMethods = function (req, res) {
   }
 };
 
+var getCurrentUser = function (callback, req, res) {
+  getDatabaseConnection(function (database) {
+    var collection = database.collection("users");
+    collection
+      .find({
+        email: req.session.user.email,
+      })
+      .toArray(function (err, result) {
+        if (result.length === 0) {
+          error("No such user", res);
+        } else {
+          callback(result[0]);
+        }
+      });
+  });
+};
+
+var handleFindFriends = function (req, res) {
+  if (req.session && req.session.user) {
+    if (req.method === "POST") {
+      processPOSTRequest(req, function (data) {
+        getDatabaseConnection(function (database) {
+          getCurrentUser(
+            function (user) {
+              findFriends(
+                req,
+                res,
+                database,
+                data.searchFor,
+                user.friends || []
+              );
+            },
+            req,
+            res
+          );
+        });
+      });
+    } else {
+      error("This method accepts only POST request", res);
+    }
+  } else {
+    error("You must be logged in to use this method", res);
+  }
+};
+
+var findFriends = function (req, res, database, searchFor, currentFriends) {
+  var collection = database.collection("users");
+  var regExp = new RegExp(searchFor, "gi");
+  var excludeEmails = [req.session.user.email];
+  currentFriends.forEach(function (value, index, arr) {
+    arr[index] = ObjectId(value);
+  });
+  collection
+    .find({
+      $and: [
+        {
+          $or: [{ firstName: regExp }, { lastName: regExp }],
+        },
+        { email: { $nin: excludeEmails } },
+        { _id: { $nin: currentFriends } },
+      ],
+    })
+    .toArray(function (err, result) {
+      var foundFriends = [];
+      for (var i = 0; i < result.length; i++) {
+        foundFriends.push({
+          id: result[i]._id,
+          firstName: result[i].firstName,
+          lastName: result[i].lastName,
+        });
+      }
+      response(
+        {
+          friends: foundFriends,
+        },
+        res
+      );
+    });
+};
+
+var handleAPIFriendsAdd = function (req, res) {
+  if (req.session && req.session.user) {
+    if (req.method === "POST") {
+      var friendId;
+      var done = function (err, result) {
+        if (err) {
+          error("Error updating the dat.", res);
+        } else {
+          response(
+            {
+              success: "OK",
+            },
+            res
+          );
+        }
+      };
+      var updateUserData = function (database, friendId) {
+        var collection = database.collection("users");
+        collection.update(
+          { email: req.session.user.email },
+          { $push: { friends: friendId } },
+          done
+        );
+      };
+
+      processPOSTRequest(req, function (data) {
+        getDatabaseConnection(function (database) {
+          updateUserData(database, data.id);
+        });
+      });
+    } else {
+      error("This method accepts only POST requests", res);
+    }
+  } else {
+    error("You must be logged in to use this method", res);
+  }
+};
+
+var handleFriends = function (req, res) {
+  if (req.session && req.session.user) {
+    getCurrentUser(
+      function (user) {
+        if (!user.friends || user.friends.length === 0) {
+          return response({ friends: [] }, res);
+        }
+        user.friends.forEach(function (value, index, arr) {
+          arr[index] = ObjectId(value);
+        });
+        getDatabaseConnection(function (database) {
+          var collection = database.collection("users");
+          collection
+            .find({
+              _id: { $in: user.friends },
+            })
+            .toArray(function (err, result) {
+              result.forEach(function (value, index, arr) {
+                arr[index].id = value.id;
+                delete arr[index].password;
+                delete arr[index].email;
+                delete arr[index]._id;
+              });
+              response(
+                {
+                  friends: result,
+                },
+                res
+              );
+            });
+        });
+      },
+      req,
+      res
+    );
+  } else {
+    error("You must be logged in to use this method", res);
+  }
+};
 var Router = require("../frontend/js/lib/Router");
 //const cookieSession = require("cookie-session");
 
@@ -269,6 +426,15 @@ Router.add("api/version", function (req, res) {
   .add("api/user", function (req, res) {
     handleRESTMethods(req, res);
   })
+  .add("api/friends", function (req, res) {
+    handleFriends(req, res);
+  })
+  .add("api/friends/find", function (req, res) {
+    handleFindFriends.call(this, req, res);
+  })
+  .add("api/friends/add", function (req, res) {
+    handleAPIFriendsAdd(req, res);
+  })
   .add("api/pages", require("./api/pages"))
   .add(function (req, res) {
     response(
@@ -282,3 +448,16 @@ Router.add("api/version", function (req, res) {
 module.exports = function (req, res) {
   Router.check(req.url, [req, res]);
 };
+
+/**
+ *
+ *
+ * The MongoDB database provides a syntax to perform complex queries
+ * We want to fetch the following:
+ * The users whose first or last names match the criterie sent by the client side
+ * The users who are different from the already added friends of the current user
+ * The users who are different from the current user. We don't want to offer the
+ * friendship of the user with their own profile
+ *
+ * $nin variable means value not in the provided  array
+ */

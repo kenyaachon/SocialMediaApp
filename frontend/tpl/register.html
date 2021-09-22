@@ -10,15 +10,28 @@
   {{/if}} {{#if success && success != ''}}
   <div class="success">{{{success}}}</div>
   {{else}}
-  <label for="first-name">First name</label>
-  <input type="text" id="first-name" value="{{firstName}}" />
-  <label for="last-name">Last name</label>
-  <input type="text" id="last-name" value="{{lastName}}" />
+  <label for="firstName">First name</label>
+  <input type="text" id="firstName" value="{{firstName}}" />
+  <label for="lastName">Last name</label>
+  <input type="text" id="lastName" value="{{lastName}}" />
   <label for="email">Email</label>
   <input type="text" id="email" value="{{email}}" />
   <label for="password">Password</label>
   <input type="password" id="password" value="{{password}}" />
-  <input type="button" value="register" on-click="register" />
+  <!-- <input
+    class="green-button"
+    type="button"
+    value="register"
+    on-click="register"
+  /> -->
+  <button
+    class="green-button"
+    type="button"
+    value="register"
+    on-click="register"
+  >
+    Register
+  </button>
   {{/if}}
 </form>
 <appfooter />
