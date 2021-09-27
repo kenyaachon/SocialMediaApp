@@ -16,6 +16,7 @@ const loginUser = function (callback) {
       callback(null, result);
     })
     .fail(function (xhr) {
+      // console.log(JSON.parse(xhr.responseText));
       callback(JSON.parse(xhr.responseText));
     });
 };

@@ -1,7 +1,7 @@
 //var Ractive = require("ractive");
 var UserModel = require("../models/User");
 var userModel = new UserModel();
-const render = function () {
+const renderLogin = function () {
   var self = this;
   this.observe("email", userModel.setter("email"));
   this.observe("password", userModel.setter("password"));
@@ -41,7 +41,7 @@ module.exports = Ractive.extend({
     type="button"
     value="login"
     on-click="login"
-  ></button>
+  >Login</button>
   <!-- <input class="green-button" type="button" value="login" on-click="login" /> -->
   {{/if}}
 </form>
@@ -52,6 +52,6 @@ module.exports = Ractive.extend({
   },
   onrender: function () {
     console.log("rendering Login page");
-    render.call(this);
+    renderLogin.call(this);
   },
 });

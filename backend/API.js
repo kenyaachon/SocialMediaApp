@@ -1,5 +1,6 @@
 const sha1 = require("sha1");
 var response = function (result, response) {
+  console.log(response.statusCode);
   response.writeHead(200, { "Content-Type": "application/json" });
   response.end(JSON.stringify(result) + "\n");
 };
@@ -46,19 +47,24 @@ var getDatabaseConnection = function (callback) {
     return;
   } else {
     console.log("database is not full and ready to use");
-    main().then(console.log).catch(console.error);
+    main()
+      .then(console.log)
+      .catch(console.error)
+      .finally(() => callback(database));
     // .finally(() => client.close());
 
     // MongoClient.connect(
-    //   "mongodb://localhost:37017/socialmediapp",
-    //   function (error, db) {
-    //     if (error) {
-    //       throw error;
+    //   "mongodb://127.0.0.1:37017/socialmediapp",
+    //   function (err, db) {
+    //     if (err) {
+    //       throw err;
     //     }
     //     database = db;
     //     callback(database);
     //   }
     // );
+
+    // callback(database);
   }
 };
 
@@ -98,8 +104,6 @@ var postRequestWithCallback = function (req, res) {
 
   processPOSTRequest(req, function (data) {
     console.log("calling ProcessPostRequest from the callback");
-    // if (!data.firstName || data.firstName === "") {
-    // error("Please fill your first name.", res);
     if (!data.get("firstName") || data.get("firstName") === "") {
       error("Please fill your first name");
     } else if (!data.get("lastName") || data.get("lastName") === "") {
@@ -114,26 +118,26 @@ var postRequestWithCallback = function (req, res) {
       error("Please fill your password.", res);
     } else {
       console.log("working on getting a datbase connection");
-      getDatabaseConnection(function (database) {
-        var collection = database.collection("user");
+
+      getDatabaseConnection(async function (database) {
+        const collection = database.collection("user");
         data.password = sha1(data.get("password"));
-        collection.insert(data, function (err, docs) {
-          if (err) {
-            response(
-              {
-                failure: "failure",
-              },
-              res
-            );
-          } else {
+
+        await collection
+          .insertOne({
+            email: data.get("email"),
+            password: sha1(data.get("password")),
+          })
+          .then(console.log)
+          .catch(console.error)
+          .finally(() =>
             response(
               {
                 success: "OK",
               },
               res
-            );
-          }
-        });
+            )
+          );
       });
     }
   });
@@ -206,22 +210,28 @@ var handleUserLogin = function (req, res) {
   processPOSTRequest(req, function (data) {
     console.log("help, we just started the user login");
     console.log("data", data);
-    if (!data.email || data.email === "" || !validEmail(data.email)) {
-      //error("Invalid or missing email.", res);
-      console.error("Invalid or missing email.");
-    } else if (!data.password || data.password === "") {
-      //error("Please enter your password.", res);
-      console.error("Please enter your password.");
+    if (
+      !data.get("email") ||
+      data.get("email") === "" ||
+      !validEmail(data.get("email"))
+    ) {
+      error("Invalid or missinng email", res);
+    } else if (!data.get("password") || data.get("password") === "") {
+      error("Please fill your password.", res);
     } else {
-      getDatabaseConnection(function (database) {
-        var collection = database.collection("user");
-        collection
+      getDatabaseConnection(async function (database) {
+        const collection = database.collection("user");
+
+        await collection
           .find({
-            email: data.email,
-            password: sha1(data.password),
+            email: data.get("email"),
+            password: sha1(data.get("password")),
           })
           .toArray(function (err, result) {
             if (result.length === 0) {
+              console.log(
+                "the result was just failed for trying to log in users"
+              );
               error("wrong email or password", res);
             } else {
               var user = result[0];
@@ -275,6 +285,7 @@ var handleRESTMethods = function (req, res) {
       break;
     case "DELETE":
       handleDeleteProfile(req, res);
+
       break;
   }
 };
@@ -449,6 +460,7 @@ Router.add("api/version", function (req, res) {
     handleUserLogout.call(this, req, res);
   })
   .add("api/user", function (req, res) {
+    //response({ success: "OK" }, res);
     handleRESTMethods(req, res);
   })
   .add("api/friends", function (req, res) {
@@ -474,7 +486,7 @@ module.exports = function (req, res) {
   Router.check(req.url, [req, res]);
 };
 
-/**
+/* *
  *
  *
  * The MongoDB database provides a syntax to perform complex queries

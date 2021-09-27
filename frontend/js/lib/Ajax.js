@@ -1,7 +1,3 @@
-// const jsdom = require("jsdom");
-// const { JSDOM } = jsdom;
-// const { window } = new JSDOM(``, { runScripts: "outside-only" });
-
 var getParams = function (data, url) {
   var arr = [],
     str;
@@ -34,6 +30,7 @@ var handleProcess = function (ops) {
         self.doneCallback &&
           self.doneCallback.apply(self.host, [result, self.xhr]);
       } else if (self.xhr.readyState == 4) {
+        // console.log("calling the failback callback");
         self.failCallback && self.failCallback.apply(self.host, [self.xhr]);
       }
       self.alwaysCallback && self.alwaysCallback.apply(self.host, [self.xhr]);
@@ -99,6 +96,7 @@ module.exports = {
         return this;
       },
       setHeaders: function (headers) {
+        console.log("settings the headers for ajax");
         handleSetHeaders.call(this, headers);
       },
     };
